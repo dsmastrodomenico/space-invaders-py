@@ -136,7 +136,7 @@ def update():
             # Si un enemigo llega al borde, todos cambian de dirección y bajan
             if ex >= SCREEN_WIDTH - 1 or ex <= 0:
                 should_drop = True
-                break
+                break # Salir del bucle interno para evitar múltiples cambios de dirección
         
         if should_drop:
             for enemy in enemies:
@@ -161,7 +161,7 @@ def update():
 
     # Eliminar balas y enemigos colisionados
     bullets = [bullet for i, bullet in enumerate(bullets) if i not in bullets_to_remove_indices]
-    enemies = [enemy for i, enemy in enumerate(enemies) if i not not in enemies_to_remove_indices]
+    enemies = [enemy for i, enemy in enumerate(enemies) if i not in enemies_to_remove_indices] # CORREGIDO AQUÍ
 
     # Comprobar si todos los enemigos han sido eliminados
     if not enemies:
