@@ -8,9 +8,14 @@ import termios # Para manejar la configuración de la terminal
 SCREEN_WIDTH = 60
 SCREEN_HEIGHT = 20
 
-PLAYER_CHAR = 'A'
-ENEMY_CHAR = 'V'
-BULLET_CHAR = '|'
+PLAYER_CHAR = '<x>'
+ENEMY_CHAR = '(<|>)'
+BULLET_CHAR = 'o'
+
+# Anchos de los caracteres (calculados automáticamente para mayor flexibilidad)
+PLAYER_WIDTH = len(PLAYER_CHAR)
+ENEMY_WIDTH = len(ENEMY_CHAR)
+BULLET_WIDTH = len(BULLET_CHAR) # Normalmente 1, pero se define por consistencia
 
 PLAYER_SPEED = 1
 BULLET_SPEED = 1
@@ -22,8 +27,8 @@ RIGHT = 1
 POINTS_PER_ENEMY = 10
 
 # --- Variables Globales del Juego ---
-player_x = SCREEN_WIDTH // 2
-player_y = SCREEN_WIDTH - 2
+player_x = (SCREEN_WIDTH - PLAYER_WIDTH) // 2
+player_y = SCREEN_HEIGHT - 2 # cerca del borde inferior de la altura de la pantalla
 
 enemies = []
 bullets = []
@@ -50,25 +55,37 @@ def clear_screen():
 def setup_enemies():
     """
     Inicializa una cuadrícula de enemigos.
+    Ajustado para el ancho de los enemigos.
     """
     global enemies
     enemies = []
+    # Espaciado horizontal para los enemigos
+    enemy_spacing_x = ENEMY_WIDTH + 2 # Ancho del enemigo + 2 espacios
+    enemies_per_row = (SCREEN_WIDTH - ENEMY_WIDTH) // enemy_spacing_x
+
     for row in range(3):
-        for col in range(SCREEN_WIDTH // 5):
-            enemies.append({'x': col * 5 + 2, 'y': row + 1, 'direction': 1})
+        for col in range(enemies_per_row):
+            # Calcular la posición inicial de cada enemigo
+            start_x = col * enemy_spacing_x + 1
+            enemies.append({'x': start_x, 'y': row + 1, 'direction': 1})
 
 def render():
     """
     Dibuja el estado actual del juego en la pantalla de la terminal.
+    Ajustado para dibujar caracteres de múltiples anchos.
     """
     clear_screen()
     screen = [[' ' for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
 
     # Dibujar jugador
-    if 0 <= player_x < SCREEN_WIDTH and 0 <= player_y < SCREEN_HEIGHT:
-        screen[player_y][player_x] = PLAYER_CHAR
+    # Iterar sobre el ancho del carácter para colocarlo
+    if 0 <= player_y < SCREEN_HEIGHT:
+        for i, char_part in enumerate(PLAYER_CHAR):
+            if 0 <= player_x + i < SCREEN_WIDTH:
+                screen[player_y][player_x + i] = char_part
 
     # Dibujar balas
+    # Las balas son de 1 carácter, no requieren cambios de iteración, solo posición
     for bullet_pos in bullets:
         bx, by = bullet_pos
         if 0 <= bx < SCREEN_WIDTH and 0 <= by < SCREEN_HEIGHT:
@@ -77,8 +94,10 @@ def render():
     # Dibujar enemigos
     for enemy in enemies:
         ex, ey = int(enemy['x']), int(enemy['y'])
-        if 0 <= ex < SCREEN_WIDTH and 0 <= ey < SCREEN_HEIGHT:
-            screen[ey][ex] = ENEMY_CHAR
+        if 0 <= ey < SCREEN_HEIGHT:
+            for i, char_part in enumerate(ENEMY_CHAR):
+                if 0 <= ex + i < SCREEN_WIDTH:
+                    screen[ey][ex + i] = char_part
 
     # Imprimir la pantalla
     for row in screen:
@@ -118,33 +137,42 @@ def get_input_char():
 def handle_input():
     """
     Maneja las entradas del teclado del usuario leyendo caracteres directamente.
+    Ajustado para el movimiento del jugador y el punto de origen del disparo.
     """
     global player_x, bullets, game_over
 
+    # Manejo de entrada cuando el juego ha terminado
     if game_over:
         char = get_input_char()
-        if char == 'r' or char == 'R':
-            reset_game()
-        elif char == 'q' or char == 'Q':
-            sys.exit() # Salir del programa
+        if char:
+            if char == 'r' or char == 'R':
+                reset_game()
+            elif char == 'q' or char == 'Q':
+                sys.exit() # Salir del programa
         return
 
+    # Manejo de entrada durante el juego
     char = get_input_char()
-    if char == 'a' or char == 'A' or char == '\x1b[D': # 'a' o flecha izquierda
-        player_x -= PLAYER_SPEED
-        if player_x < 0:
-            player_x = 0
-    elif char == 'd' or char == 'D' or char == '\x1b[C': # 'd' o flecha derecha
-        player_x += PLAYER_SPEED
-        if player_x >= SCREEN_WIDTH:
-            player_x = SCREEN_WIDTH - 1
-    elif char == ' ': # Barra espaciadora
-        if len(bullets) < 3:
-            bullets.append((player_x, player_y - 1))
+    if char:
+        if char == 'a' or char == 'A' or char == '\x1b[D': # 'a' o flecha izquierda
+            player_x -= PLAYER_SPEED
+            # Asegurarse de que el jugador no se salga del borde izquierdo
+            if player_x < 0:
+                player_x = 0
+        elif char == 'd' or char == 'D' or char == '\x1b[C': # 'd' o flecha derecha
+            player_x += PLAYER_SPEED
+            # Asegurarse de que el jugador no se salga del borde derecho
+            if player_x + PLAYER_WIDTH > SCREEN_WIDTH: # Considera el ancho del jugador
+                player_x = SCREEN_WIDTH - PLAYER_WIDTH
+        elif char == ' ': # Barra espaciadora
+            if len(bullets) < 3: # Limitar el número de balas en pantalla
+                # Bala aparece desde el centro del jugador
+                bullets.append((player_x + PLAYER_WIDTH // 2, player_y - 1))
 
 def update():
     """
     Actualiza la lógica del juego (movimiento, colisiones, etc.).
+    Ajustado para el movimiento de los enemigos y las colisiones con los nuevos anchos.
     """
     global bullets, enemies, score, game_over, last_enemy_move_time
 
@@ -155,7 +183,7 @@ def update():
     new_bullets = []
     for bx, by in bullets:
         new_by = by - BULLET_SPEED
-        if new_by >= 0:
+        if new_by >= 0: # Mantener balas dentro de la pantalla (solo Y)
             new_bullets.append((bx, new_by))
     bullets = new_bullets
 
@@ -165,15 +193,17 @@ def update():
         should_drop = False
         for enemy in enemies:
             enemy['x'] += enemy['direction'] * ENEMY_SPEED
-            ex = int(enemy['x'])
-            if ex >= SCREEN_WIDTH - 1 or ex <= 0:
+            
+            # Comprobar si el enemigo actual (su borde más a la derecha o izquierda)
+            # golpea el límite de la pantalla.
+            if int(enemy['x'] + ENEMY_WIDTH) >= SCREEN_WIDTH or int(enemy['x']) <= 0:
                 should_drop = True
-                break
-        
+                break # Una vez que un enemigo golpea, todos cambian de dirección y bajan
+
         if should_drop:
             for enemy in enemies:
                 enemy['direction'] *= -1
-                enemy['y'] += 1
+                enemy['y'] += 1 # Bajar una fila
         
         last_enemy_move_time = current_time
 
@@ -185,11 +215,14 @@ def update():
         bx, by = bullet_pos
         for j, enemy in enumerate(enemies):
             ex, ey = int(enemy['x']), int(enemy['y'])
-            if bx == ex and by == ey:
+            
+            # Condición de colisión: la bala está en la misma fila Y
+            # Y la X de la bala está dentro del rango X del enemigo
+            if by == ey and bx >= ex and bx < ex + ENEMY_WIDTH:
                 bullets_to_remove_indices.add(i)
                 enemies_to_remove_indices.add(j)
                 score += POINTS_PER_ENEMY
-                break
+                break # Una bala solo puede golpear un enemigo a la vez
 
     bullets = [bullet for i, bullet in enumerate(bullets) if i not in bullets_to_remove_indices]
     enemies = [enemy for i, enemy in enumerate(enemies) if i not in enemies_to_remove_indices]
@@ -198,12 +231,30 @@ def update():
         print("\n¡Ganaste! ¡Todos los invasores destruidos!")
         game_over = True
 
+    # Comprobar si algún enemigo llegó al jugador o al borde inferior
     for enemy in enemies:
         ex, ey = int(enemy['x']), int(enemy['y'])
-        if ey >= SCREEN_HEIGHT - 1:
+        
+        # Un enemigo llega al final de la pantalla
+        if ey + 1 >= SCREEN_HEIGHT: # Asegura que la parte inferior del enemigo no pase la pantalla
             game_over = True
             break
-        if (ex == player_x and ey == player_y):
+        
+        # Colisión de enemigo con jugador (superposición de rectángulos)
+        # Check if enemy's x range overlaps with player's x range AND they are on the same or adjacent rows
+        player_hitbox_y_start = player_y
+        player_hitbox_y_end = player_y # Jugador de 1 línea de alto
+
+        enemy_hitbox_y_start = ey
+        enemy_hitbox_y_end = ey # Enemigo de 1 línea de alto
+
+        # Comprobar solapamiento vertical
+        vertical_overlap = not (enemy_hitbox_y_end < player_hitbox_y_start or player_hitbox_y_end < enemy_hitbox_y_start)
+        
+        # Comprobar solapamiento horizontal
+        horizontal_overlap = not (ex + ENEMY_WIDTH <= player_x or player_x + PLAYER_WIDTH <= ex)
+
+        if vertical_overlap and horizontal_overlap:
             game_over = True
             break
 
