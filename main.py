@@ -1,6 +1,8 @@
 import os
 import time
-import keyboard # Para detectar las pulsaciones de teclas sin bloquear
+import sys
+import tty
+import termios # Para manejar la configuración de la terminal
 
 # --- Constantes del Juego ---
 SCREEN_WIDTH = 60
@@ -9,7 +11,6 @@ SCREEN_HEIGHT = 20
 PLAYER_CHAR = 'A'
 ENEMY_CHAR = 'V'
 BULLET_CHAR = '|'
-EXPLOSION_CHAR = 'X' 
 
 PLAYER_SPEED = 1
 BULLET_SPEED = 1
@@ -22,15 +23,18 @@ POINTS_PER_ENEMY = 10
 
 # --- Variables Globales del Juego ---
 player_x = SCREEN_WIDTH // 2
-player_y = SCREEN_WIDTH - 2 # Cerca del borde inferior
+player_y = SCREEN_WIDTH - 2
 
-enemies = [] # Lista de tuplas (x, y, direction)
-bullets = [] # Lista de tuplas (x, y)
+enemies = []
+bullets = []
 
 score = 0
 game_over = False
 last_enemy_move_time = time.time()
 enemy_move_interval = 0.5 # Intervalo en segundos para el movimiento del enemigo
+
+# Variables para el manejo de entrada no bloqueante
+old_settings = None
 
 # --- Funciones del Juego ---
 
@@ -38,10 +42,8 @@ def clear_screen():
     """
     Limpia la pantalla de la terminal.
     """
-    # Para Windows
     if os.name == 'nt':
         _ = os.system('cls')
-    # Para Unix/Linux/macOS
     else:
         _ = os.system('clear')
 
@@ -53,14 +55,13 @@ def setup_enemies():
     enemies = []
     for row in range(3):
         for col in range(SCREEN_WIDTH // 5):
-            enemies.append({'x': col * 5 + 2, 'y': row + 1, 'direction': 1}) # dict para facilitar acceso
+            enemies.append({'x': col * 5 + 2, 'y': row + 1, 'direction': 1})
 
 def render():
     """
     Dibuja el estado actual del juego en la pantalla de la terminal.
     """
     clear_screen()
-    # Crear una "pantalla" vacía con espacios
     screen = [[' ' for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
 
     # Dibujar jugador
@@ -90,24 +91,56 @@ def render():
         print("\n¡GAME OVER!")
         print("Presiona 'R' para reiniciar o 'Q' para salir.")
 
+def set_terminal_raw():
+    """
+    Configura la terminal para el modo 'raw' (lectura de un solo carácter sin eco y sin buffer).
+    """
+    global old_settings
+    old_settings = termios.tcgetattr(sys.stdin)
+    tty.setcbreak(sys.stdin) # Permite leer caracteres sin esperar Enter
+
+def restore_terminal_settings():
+    """
+    Restaura la configuración original de la terminal.
+    """
+    if old_settings:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+def get_input_char():
+    """
+    Intenta leer un carácter de la entrada estándar sin bloquear.
+    """
+    import select
+    if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+        return sys.stdin.read(1)
+    return None
+
 def handle_input():
     """
-    Maneja las entradas del teclado del usuario.
+    Maneja las entradas del teclado del usuario leyendo caracteres directamente.
     """
-    global player_x, bullets
+    global player_x, bullets, game_over
 
-    if keyboard.is_pressed('left'):
+    if game_over:
+        char = get_input_char()
+        if char == 'r' or char == 'R':
+            reset_game()
+        elif char == 'q' or char == 'Q':
+            sys.exit() # Salir del programa
+        return
+
+    char = get_input_char()
+    if char == 'a' or char == 'A' or char == '\x1b[D': # 'a' o flecha izquierda
         player_x -= PLAYER_SPEED
         if player_x < 0:
             player_x = 0
-    if keyboard.is_pressed('right'):
+    elif char == 'd' or char == 'D' or char == '\x1b[C': # 'd' o flecha derecha
         player_x += PLAYER_SPEED
         if player_x >= SCREEN_WIDTH:
             player_x = SCREEN_WIDTH - 1
-    if keyboard.is_pressed('space'):
-        # Disparar una bala (solo si no hay muchas balas en pantalla para evitar spam)
+    elif char == ' ': # Barra espaciadora
         if len(bullets) < 3:
-            bullets.append((player_x, player_y - 1)) # Bala aparece justo encima del jugador
+            bullets.append((player_x, player_y - 1))
 
 def update():
     """
@@ -122,7 +155,7 @@ def update():
     new_bullets = []
     for bx, by in bullets:
         new_by = by - BULLET_SPEED
-        if new_by >= 0: # Mantener balas dentro de la pantalla
+        if new_by >= 0:
             new_bullets.append((bx, new_by))
     bullets = new_bullets
 
@@ -133,15 +166,14 @@ def update():
         for enemy in enemies:
             enemy['x'] += enemy['direction'] * ENEMY_SPEED
             ex = int(enemy['x'])
-            # Si un enemigo llega al borde, todos cambian de dirección y bajan
             if ex >= SCREEN_WIDTH - 1 or ex <= 0:
                 should_drop = True
-                break # Salir del bucle interno para evitar múltiples cambios de dirección
+                break
         
         if should_drop:
             for enemy in enemies:
                 enemy['direction'] *= -1
-                enemy['y'] += 1 # Bajar una fila
+                enemy['y'] += 1
         
         last_enemy_move_time = current_time
 
@@ -157,24 +189,20 @@ def update():
                 bullets_to_remove_indices.add(i)
                 enemies_to_remove_indices.add(j)
                 score += POINTS_PER_ENEMY
-                break # Una bala solo puede golpear un enemigo a la vez
+                break
 
-    # Eliminar balas y enemigos colisionados
     bullets = [bullet for i, bullet in enumerate(bullets) if i not in bullets_to_remove_indices]
-    enemies = [enemy for i, enemy in enumerate(enemies) if i not in enemies_to_remove_indices] # CORREGIDO AQUÍ
+    enemies = [enemy for i, enemy in enumerate(enemies) if i not in enemies_to_remove_indices]
 
-    # Comprobar si todos los enemigos han sido eliminados
     if not enemies:
         print("\n¡Ganaste! ¡Todos los invasores destruidos!")
         game_over = True
 
-    # Comprobar si algún enemigo llegó al jugador o al borde inferior
     for enemy in enemies:
         ex, ey = int(enemy['x']), int(enemy['y'])
-        if ey >= SCREEN_HEIGHT - 1: # Si el enemigo llega al penúltimo borde
+        if ey >= SCREEN_HEIGHT - 1:
             game_over = True
             break
-        # Colisión de enemigo con jugador (simplificado)
         if (ex == player_x and ey == player_y):
             game_over = True
             break
@@ -198,23 +226,31 @@ def run_game():
     """
     global game_over
 
-    setup_enemies() # Configura los enemigos al inicio del juego
+    setup_enemies()
     
-    print("Presiona cualquier tecla para iniciar el juego...")
-    keyboard.read_event(suppress=True) # Espera una pulsación y la suprime
-
-    while True:
-        handle_input()
-        update()
-        render()
-
-        if game_over:
-            if keyboard.is_pressed('r'):
-                reset_game()
-            elif keyboard.is_pressed('q'):
-                break
+    # Intenta configurar la terminal para la entrada raw
+    try:
+        set_terminal_raw()
+        # El mensaje de "Presiona cualquier tecla..." ahora debe ser manejado por el juego
+        # porque la entrada está en modo raw.
+        # No se necesita read_event de keyboard.
+        print("Presiona las teclas 'A' o 'D' para moverte, ESPACIO para disparar.")
         
-        time.sleep(0.1) # Pequeña pausa para controlar la velocidad del juego
+        while True:
+            handle_input()
+            update()
+            render()
+
+            if game_over:
+                # El handle_input ya maneja 'r' y 'q' para game_over
+                pass
+            
+            time.sleep(0.1)
+
+    except Exception as e:
+        print(f"\nUn error ocurrió: {e}")
+    finally:
+        restore_terminal_settings() # Asegurarse de restaurar la terminal al salir
 
 if __name__ == "__main__":
     run_game()
