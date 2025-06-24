@@ -22,9 +22,9 @@ ENEMY_WIDTH = len(ENEMY_CHAR)
 BULLET_WIDTH = len(BULLET_CHAR)
 
 # Velocidades 
-PLAYER_SPEED = 0.8 # Ejemplo: movimiento más lento y preciso
-BULLET_SPEED = 1.5 # Ejemplo: balas más rápidas
-ENEMY_SPEED = 0.3  # Ejemplo: enemigos más lentos aún
+PLAYER_SPEED = 0.8 
+BULLET_SPEED = 0.2 
+ENEMY_SPEED = 1.1  
 
 LEFT = -1
 RIGHT = 1
@@ -33,8 +33,8 @@ POINTS_PER_ENEMY = 10
 
 # --- Variables Globales del Juego ---
 # Posición inicial del jugador (centrado y ajustado al ancho del carácter)
-player_x = float((SCREEN_WIDTH - PLAYER_WIDTH) // 2) # Cambiado a float
-player_y = float(SCREEN_HEIGHT - 2) # Cambiado a float
+player_x = float((SCREEN_WIDTH - PLAYER_WIDTH) // 2) 
+player_y = float(SCREEN_HEIGHT - 2) 
 
 enemies = []
 bullets = []
