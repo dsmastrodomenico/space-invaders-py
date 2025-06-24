@@ -81,20 +81,20 @@ space_invaders_modular/
 
 El Dockerfile es simple y se encarga de crear el entorno necesario:
 
-# Usa una imagen base de Python ligera
-FROM python:3.9-slim-buster
+    # Usar una imagen base de Python ligera
+    FROM python:3.9-slim-buster
 
-# Establece el directorio de trabajo dentro del contenedor
-WORKDIR /app
+    # Establece el directorio de trabajo dentro del contenedor
+    WORKDIR /app
 
-# Copia todos los archivos Python del juego al directorio de trabajo
-COPY . /app/
+    # Copia todos los archivos Python del juego al directorio de trabajo
+    COPY . /app/
 
-# No necesitamos instalar librerías adicionales ya que la gestión de entrada es nativa
-# y no hay otras dependencias de pip en esta versión.
+    # No necesitamos instalar librerías adicionales ya que la gestión de entrada es nativa
+    # y no hay otras dependencias de pip en esta versión.
 
-# Comando para ejecutar el juego cuando el contenedor inicie
-CMD ["python", "main.py"]
+    # Comando para ejecutar el juego cuando el contenedor inicie
+    CMD ["python", "main.py"]
 
 3. Construir la Imagen Docker
 
