@@ -21,9 +21,10 @@ PLAYER_WIDTH = len(PLAYER_CHAR)
 ENEMY_WIDTH = len(ENEMY_CHAR)
 BULLET_WIDTH = len(BULLET_CHAR)
 
-PLAYER_SPEED = 1
-BULLET_SPEED = 1
-ENEMY_SPEED = 0.5
+# Velocidades 
+PLAYER_SPEED = 0.8 # Ejemplo: movimiento más lento y preciso
+BULLET_SPEED = 1.5 # Ejemplo: balas más rápidas
+ENEMY_SPEED = 0.3  # Ejemplo: enemigos más lentos aún
 
 LEFT = -1
 RIGHT = 1
@@ -32,8 +33,8 @@ POINTS_PER_ENEMY = 10
 
 # --- Variables Globales del Juego ---
 # Posición inicial del jugador (centrado y ajustado al ancho del carácter)
-player_x = (SCREEN_WIDTH - PLAYER_WIDTH) // 2
-player_y = SCREEN_HEIGHT - 2
+player_x = float((SCREEN_WIDTH - PLAYER_WIDTH) // 2) # Cambiado a float
+player_y = float(SCREEN_HEIGHT - 2) # Cambiado a float
 
 enemies = []
 bullets = []
@@ -65,27 +66,24 @@ def setup_enemies():
     global enemies
     enemies = []
     # Espaciado horizontal para los enemigos
-    # Ajustamos para que los enemigos no colisionen con los muros laterales
     enemy_spacing_x = ENEMY_WIDTH + 2 # Ancho del enemigo + 2 espacios
-    enemies_per_row = (SCREEN_WIDTH - 2 - ENEMY_WIDTH) // enemy_spacing_x # -2 para los muros
+    enemies_per_row = (SCREEN_WIDTH - 2 - ENEMY_WIDTH) // enemy_spacing_x
 
-    # Aseguramos que haya al menos un enemigo si el espacio lo permite
     if enemies_per_row <= 0:
         enemies_per_row = 1 if (SCREEN_WIDTH - 2 - ENEMY_WIDTH) >= 0 else 0
 
     for row in range(3):
         # La posición inicial ahora debe considerar el muro izquierdo
         for col in range(enemies_per_row):
-            start_x = col * enemy_spacing_x + 1 # +1 para no chocar con el muro izquierdo
-            if start_x + ENEMY_WIDTH <= SCREEN_WIDTH -1: # Asegurar que no se salgan del muro derecho
-                enemies.append({'x': start_x, 'y': row + 1, 'direction': 1})
+            start_x = float(col * enemy_spacing_x + 1) # Posición inicial float
+            if start_x + ENEMY_WIDTH <= SCREEN_WIDTH -1:
+                enemies.append({'x': start_x, 'y': float(row + 1), 'direction': 1}) # Posiciones y también floats
 
 def render():
     """
     Dibuja el estado actual del juego en la pantalla de la terminal, incluyendo el muro.
     """
     clear_screen()
-    # Crear una "pantalla" vacía con espacios
     screen = [[' ' for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
 
     # --- Dibujar el muro ---
@@ -99,24 +97,26 @@ def render():
         screen[y][0] = VERTICAL_WALL_CHAR # Borde izquierdo
         screen[y][SCREEN_WIDTH - 1] = VERTICAL_WALL_CHAR # Borde derecho
 
-    # Dibujar jugador (sobre el muro si las coordenadas coinciden, aunque no debería)
-    if 0 < player_y < SCREEN_HEIGHT - 1: # Asegurarse de que el jugador no se dibuje sobre el muro superior/inferior
+    # Dibujar jugador (usando int() para la posición de renderizado)
+    player_render_x = int(player_x)
+    player_render_y = int(player_y)
+    if 0 < player_render_y < SCREEN_HEIGHT - 1:
         for i, char_part in enumerate(PLAYER_CHAR):
-            if 0 < player_x + i < SCREEN_WIDTH - 1: # Asegurarse de no dibujar sobre muros laterales
-                screen[player_y][player_x + i] = char_part
+            if 0 < player_render_x + i < SCREEN_WIDTH - 1:
+                screen[player_render_y][player_render_x + i] = char_part
 
-    # Dibujar balas
+    # Dibujar balas (usando int() para las posiciones de renderizado)
     for bullet_pos in bullets:
-        bx, by = bullet_pos
-        if 0 < by < SCREEN_HEIGHT - 1 and 0 < bx < SCREEN_WIDTH - 1: # Balas también dentro de los muros
+        bx, by = int(bullet_pos[0]), int(bullet_pos[1])
+        if 0 < by < SCREEN_HEIGHT - 1 and 0 < bx < SCREEN_WIDTH - 1:
             screen[by][bx] = BULLET_CHAR
 
-    # Dibujar enemigos
+    # Dibujar enemigos (usando int() para las posiciones de renderizado)
     for enemy in enemies:
         ex, ey = int(enemy['x']), int(enemy['y'])
-        if 0 < ey < SCREEN_HEIGHT - 1: # Enemigos también dentro de los muros
+        if 0 < ey < SCREEN_HEIGHT - 1:
             for i, char_part in enumerate(ENEMY_CHAR):
-                if 0 < ex + i < SCREEN_WIDTH - 1: # Asegurarse de no dibujar sobre muros laterales
+                if 0 < ex + i < SCREEN_WIDTH - 1:
                     screen[ey][ex + i] = char_part
 
     # Imprimir la pantalla
@@ -183,22 +183,23 @@ def handle_input():
             player_x -= PLAYER_SPEED
             # Asegurarse de que el jugador no se salga del muro izquierdo
             if player_x < 1: # 1 es la primera columna dentro del muro
-                player_x = 1
+                player_x = float(1)
         elif char == 'd' or char == 'D' or char == '\x1b[C': # 'd' o flecha derecha
             player_x += PLAYER_SPEED
             # Asegurarse de que el jugador no se salga del muro derecho
             if player_x + PLAYER_WIDTH >= SCREEN_WIDTH - 1: # SCREEN_WIDTH - 1 es la columna del muro derecho
-                player_x = SCREEN_WIDTH - 1 - PLAYER_WIDTH
+                player_x = float(SCREEN_WIDTH - 1 - PLAYER_WIDTH)
         elif char == ' ': # Barra espaciadora
             if len(bullets) < 3:
                 # Bala aparece desde el centro del jugador
-                bullets.append((player_x + PLAYER_WIDTH // 2, player_y - 1))
+                bullets.append((player_x + PLAYER_WIDTH / 2.0, player_y - 1.0)) # Disparo con flotantes
+
 
 def update():
     """
     Actualiza la lógica del juego (movimiento, colisiones, etc.).
-    Ajustado para el movimiento de los enemigos y las colisiones con los nuevos anchos,
-    respetando los límites del muro.
+    Las posiciones se mantienen como flotantes.
+    Las colisiones se comprueban usando la parte entera para la cuadrícula.
     """
     global bullets, enemies, score, game_over, last_enemy_move_time
 
@@ -208,7 +209,7 @@ def update():
     # Mover balas
     new_bullets = []
     for bx, by in bullets:
-        new_by = by - BULLET_SPEED
+        new_by = by - BULLET_SPEED # Se mantiene como flotante
         if new_by >= 1: # Las balas desaparecen cuando llegan al muro superior (fila 0)
             new_bullets.append((bx, new_by))
     bullets = new_bullets
@@ -218,9 +219,10 @@ def update():
     if current_time - last_enemy_move_time > enemy_move_interval:
         should_drop = False
         for enemy in enemies:
-            enemy['x'] += enemy['direction'] * ENEMY_SPEED
+            enemy['x'] += enemy['direction'] * ENEMY_SPEED # Se mantiene como flotante
             
             # Comprobar si el enemigo actual golpea el muro lateral
+            # Usamos int() para la comprobación de límites basada en la cuadrícula
             if int(enemy['x'] + ENEMY_WIDTH) >= SCREEN_WIDTH - 1 or int(enemy['x']) <= 0:
                 should_drop = True
                 break
@@ -228,7 +230,7 @@ def update():
         if should_drop:
             for enemy in enemies:
                 enemy['direction'] *= -1
-                enemy['y'] += 1 # Bajar una fila
+                enemy['y'] += 1.0 # Bajar una fila (también como flotante)
         
         last_enemy_move_time = current_time
 
@@ -237,13 +239,14 @@ def update():
     enemies_to_remove_indices = set()
 
     for i, bullet_pos in enumerate(bullets):
-        bx, by = bullet_pos
+        # Convertimos las posiciones flotantes a enteros para la comprobación de colisiones en cuadrícula
+        bx_int, by_int = int(bullet_pos[0]), int(bullet_pos[1])
         for j, enemy in enumerate(enemies):
-            ex, ey = int(enemy['x']), int(enemy['y'])
+            ex_int, ey_int = int(enemy['x']), int(enemy['y'])
             
             # Colisión: la bala está en la misma fila Y
             # Y la X de la bala está dentro del rango X del enemigo
-            if by == ey and bx >= ex and bx < ex + ENEMY_WIDTH:
+            if by_int == ey_int and bx_int >= ex_int and bx_int < ex_int + ENEMY_WIDTH:
                 bullets_to_remove_indices.add(i)
                 enemies_to_remove_indices.add(j)
                 score += POINTS_PER_ENEMY
@@ -258,22 +261,23 @@ def update():
 
     # Comprobar si algún enemigo llegó al jugador o al borde inferior (muro)
     for enemy in enemies:
-        ex, ey = int(enemy['x']), int(enemy['y'])
+        ex_int, ey_int = int(enemy['x']), int(enemy['y']) # Posiciones enteras para comprobación de colisión
         
         # Un enemigo llega al final de la pantalla (muro inferior)
-        if ey + 1 >= SCREEN_HEIGHT - 1: # Considera la línea justo encima del muro inferior
+        if ey_int + 1 >= SCREEN_HEIGHT - 1: # Considera la línea justo encima del muro inferior
             game_over = True
             break
         
         # Colisión de enemigo con jugador (superposición de rectángulos)
-        player_hitbox_y_start = player_y
-        enemy_hitbox_y_start = ey
+        player_hitbox_y_start = int(player_y)
+        enemy_hitbox_y_start = ey_int
 
-        # Si están en la misma fila o el enemigo está justo encima del jugador
         vertical_overlap = (enemy_hitbox_y_start == player_hitbox_y_start)
+        
+        player_hitbox_x_start = int(player_x)
+        enemy_hitbox_x_start = ex_int
 
-        # Comprobar solapamiento horizontal
-        horizontal_overlap = not (ex + ENEMY_WIDTH <= player_x or player_x + PLAYER_WIDTH <= ex)
+        horizontal_overlap = not (enemy_hitbox_x_start + ENEMY_WIDTH <= player_hitbox_x_start or player_hitbox_x_start + PLAYER_WIDTH <= enemy_hitbox_x_start)
 
         if vertical_overlap and horizontal_overlap:
             game_over = True
@@ -285,8 +289,8 @@ def reset_game():
     Reinicia el estado del juego para una nueva partida.
     """
     global player_x, player_y, enemies, bullets, score, game_over, last_enemy_move_time
-    player_x = (SCREEN_WIDTH - PLAYER_WIDTH) // 2 # Posición inicial ajustada
-    player_y = SCREEN_HEIGHT - 2
+    player_x = float((SCREEN_WIDTH - PLAYER_WIDTH) // 2) # Posición inicial ajustada
+    player_y = float(SCREEN_HEIGHT - 2)
     bullets = []
     score = 0
     game_over = False
