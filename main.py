@@ -13,7 +13,8 @@ SCREEN_HEIGHT = 20
 PLAYER_CHAR = '<x>'
 ENEMY_CHAR = '(<|>)'
 BULLET_CHAR = 'o'
-WALL_CHAR = '#' # Nuevo carácter para el muro
+HORIZONTAL_WALL_CHAR = '-' # Nuevo carácter para el muro horizontal
+VERTICAL_WALL_CHAR = '|'  # Nuevo carácter para el muro vertical
 
 # Anchos de los caracteres
 PLAYER_WIDTH = len(PLAYER_CHAR)
@@ -88,15 +89,15 @@ def render():
     screen = [[' ' for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
 
     # --- Dibujar el muro ---
-    # Muro superior e inferior
+    # Muro superior e inferior (horizontales)
     for x in range(SCREEN_WIDTH):
-        screen[0][x] = WALL_CHAR # Borde superior
-        screen[SCREEN_HEIGHT - 1][x] = WALL_CHAR # Borde inferior
+        screen[0][x] = HORIZONTAL_WALL_CHAR # Borde superior
+        screen[SCREEN_HEIGHT - 1][x] = HORIZONTAL_WALL_CHAR # Borde inferior
 
-    # Muros laterales
+    # Muros laterales (verticales)
     for y in range(SCREEN_HEIGHT):
-        screen[y][0] = WALL_CHAR # Borde izquierdo
-        screen[y][SCREEN_WIDTH - 1] = WALL_CHAR # Borde derecho
+        screen[y][0] = VERTICAL_WALL_CHAR # Borde izquierdo
+        screen[y][SCREEN_WIDTH - 1] = VERTICAL_WALL_CHAR # Borde derecho
 
     # Dibujar jugador (sobre el muro si las coordenadas coinciden, aunque no debería)
     if 0 < player_y < SCREEN_HEIGHT - 1: # Asegurarse de que el jugador no se dibuje sobre el muro superior/inferior
