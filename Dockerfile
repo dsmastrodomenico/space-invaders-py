@@ -5,7 +5,7 @@ FROM python:3.9-slim-buster
 WORKDIR /app
 
 # Copia tu archivo del juego al directorio de trabajo
-COPY main.py /app/
+COPY . /app/
 
 # Comando para ejecutar el juego cuando el contenedor inicie
 CMD ["python", "main.py"]
