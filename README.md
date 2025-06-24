@@ -1,6 +1,7 @@
 Space Invaders para Terminal (Versión Modular)
 
-Esta es una implementación mejorada del clásico juego "Space Invaders" para la terminal. Ha sido refactorizado para utilizar una estructura modular basada en clases y archivos separados, lo que mejora la organización, legibilidad y mantenibilidad del código. Además, incorpora nuevas características de diseño y jugabilidad.
+Esta es una implementación del clásico juego "Space Invaders" para la terminal. Ha sido refactorizado para utilizar una estructura modular basada en clases y archivos separados, lo que mejora la organización, legibilidad y mantenibilidad del código. Además, incorpora nuevas características de diseño y jugabilidad.
+
 Características Nuevas
 
     Diseño de Caracteres Personalizado: Los elementos del juego tienen un nuevo aspecto:
@@ -53,7 +54,7 @@ Cómo Jugar
 
 Requisitos
 
-Para ejecutar este juego, solo necesitarás:
+Para ejecutar este juego, se necesitara:
 
     Python 3.x
 
@@ -64,7 +65,7 @@ Ejecución con Docker
 La forma recomendada de ejecutar este juego es utilizando Docker, ya que proporciona un entorno aislado y consistente.
 1. Estructura del Directorio
 
-Asegúrate de que todos los archivos Python (constants.py, terminal_utils.py, player.py, enemy.py, bullet.py, game.py, main.py) y el Dockerfile estén en el mismo directorio (por ejemplo, space_invaders_modular).
+Es necesario asegurar que todos los archivos Python (constants.py, terminal_utils.py, player.py, enemy.py, bullet.py, game.py, main.py) y el Dockerfile estén en el mismo directorio (por ejemplo, space_invaders_modular).
 
 space_invaders_modular/
 ├── Dockerfile
@@ -97,17 +98,16 @@ CMD ["python", "main.py"]
 
 3. Construir la Imagen Docker
 
-Abre tu terminal, navega hasta el directorio space_invaders_modular y ejecuta el siguiente comando para construir la imagen Docker:
+Abrir la terminal, navegar hasta el directorio space_invaders_modular y ejecutar el siguiente comando para construir la imagen Docker:
 
 docker build -t space-invaders-modular .
 
 Esto creará una imagen Docker llamada space-invaders-modular.
 4. Ejecutar el Contenedor Docker
 
-Una vez que la imagen esté construida, puedes iniciar el juego ejecutando:
+Una vez que la imagen esté construida, se puede iniciar el juego ejecutando:
 
 docker run -it space-invaders-modular
 
 El flag -it es crucial para permitir la interacción del teclado con el juego en la terminal.
 
-¡Disfruta de esta versión modular y mejorada de Space Invaders en tu terminal!
