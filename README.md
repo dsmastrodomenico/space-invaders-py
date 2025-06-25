@@ -1,83 +1,113 @@
-Space Invaders para Terminal (Versión Simple)
+Space Invaders para Terminal (Versión Modular)
 
-Este es un juego básico de "Space Invaders" implementado en Python para ejecutarse directamente en la terminal. Esta versión está diseñada para ser simple y didáctica, utilizando únicamente funciones y variables globales, sin la complejidad de las clases o módulos separados, lo que la hace ideal para entender la lógica fundamental del juego.
-Características
+Esta es una implementación del clásico juego "Space Invaders" para la terminal. Ha sido refactorizado para utilizar una estructura modular basada en clases y archivos separados, lo que mejora la organización, legibilidad y mantenibilidad del código. Además, incorpora nuevas características de diseño y jugabilidad.
 
-    Movimiento del Jugador: Mueve tu nave de izquierda a derecha.
+Características Nuevas
 
-    Disparos: Dispara proyectiles para destruir a los invasores.
+    Diseño de Caracteres Personalizado: Los elementos del juego tienen un nuevo aspecto:
 
-    Puntuación: Gana puntos por cada invasor eliminado.
+        Jugador: <x>
 
-    Final del Juego: El juego termina si los invasores llegan al final de la pantalla o chocan con tu nave.
+        Enemigos: (<|>)
 
-    Reiniciar/Salir: Opción para reiniciar el juego o salir al finalizar la partida.
+        Balas: o
+
+    Muros Fronterizos: El área de juego está delimitada por un muro visual:
+
+        Muros horizontales: -
+
+        Muros verticales: |
+
+    Velocidades Decimales: La velocidad de movimiento del jugador, los enemigos y las balas ahora se puede definir con valores decimales, lo que permite un control más fino sobre la dificultad y una sensación de movimiento más fluida (aunque visualmente sigue siendo por caracteres en la terminal).
+
+    Colisiones Ajustadas: La lógica de colisión ha sido adaptada para tener en cuenta el ancho de los nuevos caracteres, asegurando que los disparos y los choques sean precisos.
+
+    Gestión de Entrada Robusta: Se ha implementado un sistema de entrada de teclado directo a la terminal (utilizando sys, tty, termios, select), eliminando dependencias externas problemáticas y mejorando la compatibilidad en entornos Docker.
+
+Estructura del Proyecto
+
+El código está organizado en los siguientes archivos Python para una mejor separación de responsabilidades:
+
+    constants.py: Contiene todas las constantes configurables del juego, como dimensiones de pantalla, caracteres, anchos de elementos, velocidades y puntuación.
+
+    terminal_utils.py: Proporciona funciones de utilidad para interactuar con la terminal, como limpiar la pantalla y configurar/restaurar el modo de entrada raw del teclado.
+
+    player.py: Define la clase Player que representa la nave espacial del jugador, con sus propiedades (posición, carácter, ancho) y métodos de movimiento.
+
+    enemy.py: Define la clase Enemy para los invasores, incluyendo su posición, carácter, ancho y lógica de movimiento.
+
+    bullet.py: Define la clase Bullet para los proyectiles disparados por el jugador, manejando su posición y movimiento.
+
+    game.py: Contiene la clase principal Game, que orquesta toda la lógica del juego: inicialización, renderizado, manejo de entrada, actualización del estado (movimiento de elementos, colisiones, puntuación) y reinicio del juego.
+
+    main.py: El punto de entrada del programa, donde se crea una instancia de Game y se inicia el bucle principal.
 
 Cómo Jugar
 
-    Iniciar el Juego: Ejecuta el script. El juego esperará a que presiones cualquier tecla para comenzar.
+    Movimiento: Usa las teclas 'A' y 'D' o las flechas izquierda (←) y derecha (→) para mover tu nave.
 
-    Moverse: Usa las teclas de flecha izquierda y flecha derecha del teclado para mover tu nave (A).
+    Disparar: Presiona la barra espaciadora para disparar.
 
-    Disparar: Presiona la barra espaciadora para que tu nave dispare proyectiles (|).
+    Objetivo: Elimina a todos los invasores antes de que lleguen al muro inferior o colisionen con tu nave.
 
-    Objetivo: Destruye a todos los invasores (V) antes de que lleguen al final de la pantalla.
-
-    Game Over: Si un invasor llega al borde inferior de la pantalla o colisiona con tu nave, el juego terminará.
-
-    Reiniciar: Después de "GAME OVER", presiona la tecla R para jugar de nuevo.
-
-    Salir: Después de "GAME OVER", presiona la tecla Q para salir del juego.
+    Fin del Juego: Si pierdes, presiona 'R' para reiniciar o 'Q' para salir.
 
 Requisitos
 
+Para ejecutar este juego, se necesitara:
+
     Python 3.x
 
-    La librería keyboard de Python.
+    No se requieren librerías de Python externas (pip install ...) ya que la gestión de entrada se realiza con módulos nativos.
 
-Instalación y Ejecución
+Ejecución con Docker
 
-    Guarda el Código: Guarda todo el código proporcionado (la versión simple en un solo archivo) como main.py en tu máquina.
+La forma recomendada de ejecutar este juego es utilizando Docker, ya que proporciona un entorno aislado y consistente.
+1. Estructura del Directorio
 
-    Instala la Dependencia: Abre tu terminal o línea de comandos y ejecuta el siguiente comando para instalar la librería keyboard:
+Es necesario asegurar que todos los archivos Python (constants.py, terminal_utils.py, player.py, enemy.py, bullet.py, game.py, main.py) y el Dockerfile estén en el mismo directorio (por ejemplo, space_invaders_modular).
 
-    pip install keyboard
+space_invaders_modular/
+├── Dockerfile
+├── main.py
+├── game.py
+├── player.py
+├── enemy.py
+├── bullet.py
+├── constants.py
+└── terminal_utils.py
 
-    Ejecuta el Juego: Navega hasta el directorio donde guardaste main.py y ejecuta el script con Python:
+2. Dockerfile
 
-    python main.py
+El Dockerfile es simple y se encarga de crear el entorno necesario:
 
-Ejecución con Docker (Opcional)
-
-Puedes ejecutar este juego dentro de un contenedor Docker para aislar su entorno.
-
-    Crea el Dockerfile: En el mismo directorio donde guardaste main.py, crea un archivo llamado Dockerfile (sin extensión) con el siguiente contenido:
-
-    # Usa una imagen base de Python
+    # Usar una imagen base de Python ligera
     FROM python:3.9-slim-buster
 
     # Establece el directorio de trabajo dentro del contenedor
     WORKDIR /app
 
-    # Copia los archivos del juego al directorio de trabajo
-    COPY . /app
+    # Copia todos los archivos Python del juego al directorio de trabajo
+    COPY . /app/
 
-    # Instala las dependencias (necesita python3-dev para compilar keyboard)
-    RUN apt-get update && apt-get install -y python3-dev \
-        && pip install keyboard \
-        && rm -rf /var/lib/apt/lists/*
+    # No necesitamos instalar librerías adicionales ya que la gestión de entrada es nativa
+    # y no hay otras dependencias de pip en esta versión.
 
     # Comando para ejecutar el juego cuando el contenedor inicie
     CMD ["python", "main.py"]
 
-    Construye la Imagen Docker: Desde tu terminal en el mismo directorio, ejecuta:
+3. Construir la Imagen Docker
 
-    docker build -t space-invaders-simple .
+Abrir la terminal, navegar hasta el directorio space_invaders_modular y ejecutar el siguiente comando para construir la imagen Docker:
 
-    Ejecuta el Contenedor: Para iniciar el juego en un contenedor interactivo:
+docker build -t space-invaders-modular .
 
-    docker run -it space-invaders-simple
+Esto creará una imagen Docker llamada space-invaders-modular.
+4. Ejecutar el Contenedor Docker
 
-Licencia
+Una vez que la imagen esté construida, se puede iniciar el juego ejecutando:
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE (si se incluye) para más detalles.
+docker run -it space-invaders-modular
+
+El flag -it es crucial para permitir la interacción del teclado con el juego en la terminal.
+
