@@ -135,6 +135,7 @@ class Game:
     def update(self):
         """
         Actualiza la lógica del juego (movimiento, colisiones, etc.).
+        Incorpora una IA simple para el movimiento horizontal de los enemigos.
         """
         if self.game_over:
             return
@@ -145,23 +146,54 @@ class Game:
         for bullet in self.bullets:
             bullet.move()
 
-        # Mover enemigos
+        # Mover enemigos (con IA)
         current_time = time.time()
         if current_time - self.last_enemy_move_time > constants.ENEMY_MOVE_INTERVAL:
+            
+            # 1. Determinar la dirección horizontal del grupo basada en la IA
+            group_horizontal_direction = 0 # 0 = no moverse horizontalmente, -1 = izquierda, 1 = derecha
+
+            if self.enemies:
+                # Calcular el centro horizontal del grupo de enemigos
+                min_enemy_x = min(e.x for e in self.enemies)
+                max_enemy_x = max(e.x + e.width for e in self.enemies)
+                group_center_x = (min_enemy_x + max_enemy_x) / 2.0
+
+                # Calcular el centro del jugador
+                player_center_x = self.player.x + self.player.width / 2.0
+
+                # Si el jugador está a la derecha del centro del grupo enemigo, el grupo se mueve a la derecha
+                if player_center_x > group_center_x:
+                    group_horizontal_direction = constants.RIGHT
+                # Si el jugador está a la izquierda del centro del grupo enemigo, el grupo se mueve a la izquierda
+                elif player_center_x < group_center_x:
+                    group_horizontal_direction = constants.LEFT
+                # Si están alineados, group_horizontal_direction permanece en 0, manteniendo la dirección actual
+
+            # 2. Actualizar la dirección de cada enemigo y comprobar si alguno golpea el borde
             should_drop = False
             for enemy in self.enemies:
-                enemy.move()
-                # Comprobar si el enemigo actual golpea el muro lateral
-                ex, _ = enemy.get_render_position()
-                if ex + enemy.width >= constants.SCREEN_WIDTH - 1 or ex <= 0:
-                    should_drop = True
-                    break # Un enemigo llegó al borde, todos cambian de dirección y bajan
+                # Si la IA sugiere una dirección, la aplicamos a cada enemigo.
+                # Esto permite que la IA "guíe" al grupo.
+                if group_horizontal_direction != 0:
+                    enemy.direction = group_horizontal_direction
 
+                # Ahora, mueve al enemigo con su dirección (que puede haber sido actualizada por la IA)
+                enemy.move()
+
+                # Después de mover, comprueba si alguno ha tocado un muro lateral
+                ex_int, _ = enemy.get_render_position()
+                if ex_int + enemy.width >= constants.SCREEN_WIDTH - 1 or ex_int <= 0:
+                    should_drop = True # Si uno toca, todos deben bajar
+                    # No romper aquí, deja que todos los enemigos se muevan en este tick
+                    # La lógica de drop se aplicará después del bucle
+
+            # 3. Si algún enemigo tocó un borde, haz que todo el grupo baje y cambie de dirección
             if should_drop:
                 for enemy in self.enemies:
-                    enemy.direction *= -1 # Invertir dirección
-                    enemy.drop() # Bajar una fila
-            
+                    enemy.direction *= -1 # Invertir la dirección para el próximo movimiento horizontal
+                    enemy.drop() # Mover hacia abajo
+
             self.last_enemy_move_time = current_time
 
         # Colisiones de balas con enemigos
